@@ -19,6 +19,31 @@ def im2double(im):
     out = (im.astype('float') - min_val) / (max_val - min_val)
     return out
 
+def iv2(mat):
+    assert len(mat.shape) == 2    
+    res = np.zeros(mat.shape)
+    for i in range(mat.shape[0] + 1):
+        for j in range(mat.shape[1] + 1):
+            res[i-1, j-1] = np.sum(mat[0:i, 0:j])
+    return res
+
+def iv3(mat):
+    assert len(mat.shape) == 3
+    res = np.zeros(mat.shape)
+    for i in range(mat.shape[0] + 1):
+        for j in range(mat.shape[1] + 1):
+            for k in range(mat.shape[2] + 1):
+                res[i, j, k] = np.sum(mat[0:i, 0:j, 0:k])
+    return res
+
+def gb3(mat, coord, size):
+    assert len(mat.shape) == 3
+    w, h, l = size
+    w, h, l = w+1, h+1, l+1
+    x, y, t = coord
+    gb = (iv3(mat[0:x+w, 0:y+h, 0:t+l]) - iv3(mat[0:x, 0:y+h, 0:t+l]) - iv3(mat[0:x+w, 0:y, 0:t+l]) + iv3(mat[0:x, 0:y, 0:t+l])) - (iv3(mat[0:x+w, 0:y+h, 0:t]) - iv3(mat[0:x, 0:y+h, 0:t]) - iv3(mat[0:x+w, 0:y, 0:t]) + iv3(mat[0:x, 0:y, 0:t]))  
+    return gb
+
 
 data_path = "D:/Proj/UAV/dataset/drones/"
 data_postfix = ".avi"
@@ -73,15 +98,52 @@ while(True):
     stcube = np.array(buffer)
     # ---------------------------------------------------------------------||
 
+    TIMER  = time.time()
+    BSIZE = 40
+    CSIZE = int(BSIZE / 2)
 
+    THRES = 1.29107
+    PHI = 0.5 * (1 + np.sqrt(5))
+    PROJ = np.array([[1,1,1], [1,1,-1], [1,-1,1], [1,-1,-1], [-1,1,1], [-1,1,-1], [-1,-1,1], [-1,-1,-1], 
+    [0,1/PHI,PHI], [0,1/PHI,-PHI], [0,-1/PHI,PHI], [0,-1/PHI,-PHI], 
+    [1/PHI,PHI,0], [1/PHI,-PHI,0], [-1/PHI,PHI,0], [-1/PHI,-PHI,0], 
+    [PHI,0,1/PHI], [PHI,0,-1/PHI], [-PHI,0,1/PHI], [-PHI,0,-1/PHI]])
+
+    s_stp, t_stp = 40, 1
     # CALC HOG3d IN EACH ST_CUBE
     #{
+
+    Hc = np.array([])
     if time_stamp >= CUBE_T:
         [dx, dy, dt] = np.gradient(stcube, 1, 1, 1) # NAIVE grad in 3-dims
         for k in range(CUBE_T):
             plt.subplot(1, CUBE_T, k + 1)
             plt.imshow(stcube[:][:][k])
         plt.show()
+
+        x_grid_b = np.arange(0, stcube.shape[0] - BSIZE, s_stp)
+        y_grid_b = np.arange(0, stcube.shape[1] - BSIZE, s_stp)
+        for x_b in x_grid_b:
+            for y_b in y_grid_b:
+                Block = stcube[x_b: x_b + BSIZE, y_b: y_b + BSIZE, :]
+                x_grid_c = np.arange(0, Block.shape[0] - CSIZE, CSIZE)
+                y_grid_c = np.arange(0, Block.shape[1] - CSIZE, CSIZE)
+                for x_c in x_grid_c:
+                    for y_c in y_grid_c:
+                        Cell = Block[x_c: x_c + CSIZE, y_c: y_c + CSIZE, :]
+                        # dx, dy, dt = np.gradient(Cell, 1, 1, 1)
+                        gb = gb3(Cell) # -- NOT IMPLEMENTED YET
+
+                        qb = np.matmul(P, gb) / np.linalg.norm(gb) #--(5)
+
+                        qb = qb - THRES
+                        qb[qb < 0] = 0
+
+                        qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) #--(6)
+                        
+                        Hc = np.concatenate((Hc, qb.flatten()))
+                        
+
 
     # }
 
