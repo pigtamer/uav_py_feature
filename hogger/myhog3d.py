@@ -45,8 +45,7 @@ file_out = open("../features3d/feature3d_%d.txt"%VID_NUM, 'w')
 
 # parse each video    
 time_stamp = 0
-cppc = 0 # counter for patch per cube
-CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 6; assert CUBE_T > 1 and CUBE_T < 50
+CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 4; assert CUBE_T > 1 and CUBE_T < 50
 
 buffer = deque()    # buffer 
 while(True):
@@ -67,10 +66,13 @@ while(True):
         rand_nega_y = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
         patch = frame[rand_nega_x : rand_nega_x + CUBE_X, rand_nega_y : rand_nega_y + CUBE_Y]
 
+    # ----------------- ST-CUBE generation with deque buffer --------------|
     buffer.append(patch) # push a patch to the rear of stcube    
-    if time_stamp >= CUBE_T: buffer.popleft() # delete a preious frame from head if buffer is filled
-
+    if len(buffer) == CUBE_T: 
+        buffer.popleft() # pop a frame from head when buffer is filled
     stcube = np.array(buffer)
+    # ---------------------------------------------------------------------||
+
 
     # CALC HOG3d IN EACH ST_CUBE
     #{
@@ -80,9 +82,10 @@ while(True):
             plt.subplot(1, CUBE_T, k + 1)
             plt.imshow(stcube[:][:][k])
         plt.show()
+
     # }
 
-    # #---------------------------------------------------------------------------
+    # -----------------------------------------------------------------------
     # # if IF_PLOT_HOG_FEATURE: plt.plot(patch_hog); plt.show()
     # if IF_SHOW_PATCH:
     #     cv.imshow("patch", patch) # show patch in the latest frame of a stcube. if no target in annotated, then a negative sample is added from a random area on each frame. image window can flicker when negative samples are displayed.
