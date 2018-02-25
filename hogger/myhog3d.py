@@ -42,15 +42,16 @@ cap = cv.VideoCapture()
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
 # TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
 
-TRAIN_SET_RANGE = np.array([18])
+TRAIN_SET_RANGE = np.array([1])
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
-IF_PLOT_HOG_FEATURE = True
+IF_PLOT_HOG_FEATURE = False
 
-tic = time.time()
 # parse videos in training set
 # VID_NUM = 1; # for single test
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     #   {
+    tic = time.time()
+    
     locations, labels = annot_parser.parse("X:/UAV/annot/drones/", VID_NUM)
     data_num = VID_NUM
 
@@ -180,7 +181,6 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
             if time_stamp == locations.shape[0] : break
                 # } END LOOP
 
+    toc = time.time() - tic
+    print("Time elapsed: %s", toc)
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
-
-toc = time.time() - tic
-print("Time elapsed: %s", toc)
