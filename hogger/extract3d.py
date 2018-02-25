@@ -84,22 +84,19 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                     plt.imshow(stcube[:][:][k])
                 plt.show()
 
-            fhog = myhog3d.hog3d(stcube, labels[time_stamp])
+            FHOG3D = myhog3d.hog3d(stcube, labels[time_stamp])
 
             if IF_PLOT_HOG_FEATURE:
-                plt.plot(fhog);plt.title(labels[time_stamp]);plt.show()
+                plt.plot(FHOG3D);plt.title(labels[time_stamp]);plt.show()
 
-                    # }
-            
             file_out.write("%d " % (labels[time_stamp]))
-            for idx in range(fhog.size):
+            for idx in range(FHOG3D.size):
                 # idx + 1 to fit libsvm format (xgb)
-                file_out.write("%d:%f " % (idx + 1, fhog[idx]))
+                file_out.write("%d:%f " % (idx + 1, FHOG3D[idx]))
             file_out.write('\n')
 
             time_stamp = time_stamp + 1
             if time_stamp == locations.shape[0] : break
-                # } END LOOP
 
     toc = time.time() - tic
     print("Time elapsed: %s", toc)
