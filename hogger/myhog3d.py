@@ -40,14 +40,14 @@ if not os.path.exists("../features3d"): os.makedirs("../features3d")
 cap = cv.VideoCapture()
 
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
-TRAIN_SET_RANGE = drones_nums # select some videos
+TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
 
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
-IF_PLOT_HOG_FEATURE = False
+IF_PLOT_HOG_FEATURE = True
 
 # parse videos in training set
 # VID_NUM = 1; # for single test
-for VID_NUM in [1]: #---- do all those shits down here
+for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     #   {
     locations, labels = annot_parser.parse("X:/UAV/annot/drones/", VID_NUM)
     data_num = VID_NUM
@@ -110,55 +110,70 @@ for VID_NUM in [1]: #---- do all those shits down here
             # CALC HOG3d IN EACH ST_CUBE
             #{
 
-            Hc = np.array([])
             t_grid = np.arange(0, stcube.shape[0], TSTEP)   
             y_grid = np.arange(0, stcube.shape[1], CSTEP)
             x_grid = np.arange(0, stcube.shape[2], CSTEP)
             
+            bc_div = 2
+            t_bgrid = t_grid[0: len(t_grid)+1: TSTEP*bc_div]
+            y_bgrid = t_grid[0: len(y_grid)+1: CSTEP*bc_div]
+            x_bgrid = t_grid[0: len(x_grid)+1: CSTEP*bc_div]
+            
             w, h, l = CSIZE, CSIZE, TSIZE
             cnt = 0
 
+            patch_hog3d = np.array([])
             # in this looop we process each cell
-            for x in x_grid:
-                for y in y_grid:
-                    for t in t_grid:
-                        gb_x = gb3(dx, (t, y, x), (l, h, w))
-                        gb_y = gb3(dy, (t, y, x), (l, h, w))
-                        gb_t = gb3(dt, (t, y, x), (l, h, w))
-                        
-                        gb = np.array([gb_x, gb_y, gb_t])
+            for xb in x_bgrid:
+                for yb in y_bgrid:
+                    for tb in t_bgrid:
 
-                        # print(x, y) # checkpoint
-                        
-                        qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
+                        Hc = np.zeros((20,))
+                        for xc in range(bc_div):
+                            for yc in range(bc_div):
+                                for tc in range(bc_div):
+                                    x = xb + xc
+                                    y = yb + yc
+                                    t = tb + tc
+                                    gb_x = gb3(dx, (t, y, x), (l, h, w))
+                                    gb_y = gb3(dy, (t, y, x), (l, h, w))
+                                    gb_t = gb3(dt, (t, y, x), (l, h, w))
+                                    
+                                    gb = np.array([gb_x, gb_y, gb_t])
 
-                        qb = qb - THRES
-                        qb[qb < 0] = 0
+                                    # print(x, y) # checkpoint
+                                    
+                                    qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
 
-                        qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) 
+                                    qb = qb - THRES
+                                    qb[qb < 0] = 0
 
-                        Hc = np.concatenate((Hc, qb.flatten()))
-                        
-                        # Hc[np.isnan(Hc)] = 0
+                                    qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) 
 
-                        # Hc  = Hc / np.linalg.norm(Hc)
+                                    Hc = Hc + qb
+                                    
+                                    # Hc[np.isnan(Hc)] = 0
 
-                        cnt =  cnt + 1
-            # print(Hc.shape)       
-            # print(Hc)
-            if IF_PLOT_HOG_FEATURE:
-                plt.plot(Hc);plt.title(labels[time_stamp]);plt.show()
+                                    # Hc  = Hc / np.linalg.norm(Hc)
 
-        # }
+                                    cnt =  cnt + 1
+                        print(Hc.shape)       
+                        # print(Hc)
+                        patch_hog3d = np.concatenate((patch_hog3d, faq.flatten()))
+                        print(patch_hog3d)
+                        if IF_PLOT_HOG_FEATURE:
+                            plt.plot(patch_hog3d);plt.title(labels[time_stamp]);plt.show()
+
+                    # }
 
             file_out.write("%d " % (labels[time_stamp]))
             for idx in range(Hc.size):
                 # idx + 1 to fit libsvm format (xgb)
-                file_out.write("%d:%f " % (idx + 1, Hc[idx]))
+                file_out.write("%d:%f " % (idx + 1, patch_hog3d[idx]))
             file_out.write('\n')
 
             time_stamp = time_stamp + 1
             if time_stamp == locations.shape[0] : break
-    # } END LOOP
+                # } END LOOP
 
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
