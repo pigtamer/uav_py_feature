@@ -40,11 +40,13 @@ if not os.path.exists("../features3d"): os.makedirs("../features3d")
 cap = cv.VideoCapture()
 
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
-TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
+# TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
 
+TRAIN_SET_RANGE = np.array([18])
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
 IF_PLOT_HOG_FEATURE = True
 
+tic = time.time()
 # parse videos in training set
 # VID_NUM = 1; # for single test
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
@@ -57,7 +59,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
     # parse each video    
     time_stamp = 0
-    CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 8; 
+    CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 4; 
 
     buffer = deque()    # buffer 
     while(True):
@@ -81,6 +83,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
         # ----------------- ST-CUBE generation with deque buffer --------------|
         buffer.append(patch) # push a patch to the rear of stcube    
+
         if len(buffer) == CUBE_T + 1: 
             buffer.popleft() # pop a frame from head when buffer is filled
             stcube = np.array(buffer)
@@ -95,10 +98,9 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
         # ---------------------------------------------------------------------/
 
-            CSIZE = 10
-            TSIZE = CUBE_T # set cell size on t-axis as the size of stcube
-            
-            CSTEP, TSTEP = 5, TSIZE
+            CSIZE, TSIZE = 10, int(CUBE_T / 2) # set cell size
+
+            CSTEP, TSTEP = 10, TSIZE # set spatio and temporal step for main blocks
 
             THRES = 1.29107
             PHI = 0.5 * (1 + np.sqrt(5))
@@ -110,31 +112,32 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
             # CALC HOG3d IN EACH ST_CUBE
             #{
 
-            t_grid = np.arange(0, stcube.shape[0], TSTEP)   
-            y_grid = np.arange(0, stcube.shape[1], CSTEP)
-            x_grid = np.arange(0, stcube.shape[2], CSTEP)
+            t_bgrid = np.arange(0, stcube.shape[0], TSTEP)   
+            y_bgrid = np.arange(0, stcube.shape[1], CSTEP)
+            x_bgrid = np.arange(0, stcube.shape[2], CSTEP)
             
-            bc_div = 2
-            t_bgrid = t_grid[0: len(t_grid)+1: TSTEP*bc_div]
-            y_bgrid = t_grid[0: len(y_grid)+1: CSTEP*bc_div]
-            x_bgrid = t_grid[0: len(x_grid)+1: CSTEP*bc_div]
+            BC_DIV = 2
+            # t_bgrid = t_grid[0: len(t_grid)+1: TSTEP*BC_DIV]
+            # y_bgrid = t_grid[0: len(y_grid)+1: CSTEP*BC_DIV]
+            # x_bgrid = t_grid[0: len(x_grid)+1: CSTEP*BC_DIV]
             
-            w, h, l = CSIZE, CSIZE, TSIZE
+            w, h, l = int(CSIZE / BC_DIV), int(CSIZE/BC_DIV), int(TSIZE/BC_DIV)
             cnt = 0
-
-            patch_hog3d = np.array([])
+            CNT = 0
+            fhog = np.array([])
             # in this looop we process each cell
             for xb in x_bgrid:
                 for yb in y_bgrid:
                     for tb in t_bgrid:
-
+                        CNT = CNT + 1
+                        # each subblock
                         Hc = np.zeros((20,))
-                        for xc in range(bc_div):
-                            for yc in range(bc_div):
-                                for tc in range(bc_div):
-                                    x = xb + xc
-                                    y = yb + yc
-                                    t = tb + tc
+                        for xc in range(BC_DIV):
+                            for yc in range(BC_DIV):
+                                for tc in range(BC_DIV):
+                                    x = xb + xc*w
+                                    y = yb + yc*h
+                                    t = tb + tc*l
                                     gb_x = gb3(dx, (t, y, x), (l, h, w))
                                     gb_y = gb3(dy, (t, y, x), (l, h, w))
                                     gb_t = gb3(dt, (t, y, x), (l, h, w))
@@ -154,22 +157,23 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                                     
                                     # Hc[np.isnan(Hc)] = 0
 
-                                    # Hc  = Hc / np.linalg.norm(Hc)
+                                    Hc  = Hc / np.linalg.norm(Hc)
 
                                     cnt =  cnt + 1
-                        print(Hc.shape)       
                         # print(Hc)
-                        patch_hog3d = np.concatenate((patch_hog3d, faq.flatten()))
-                        print(patch_hog3d)
-                        if IF_PLOT_HOG_FEATURE:
-                            plt.plot(patch_hog3d);plt.title(labels[time_stamp]);plt.show()
+                        fhog = np.concatenate((fhog, Hc.flatten()))
+            # print(cnt, Hc.shape)       
+            # print(CNT)
+            # print(fhog.shape)
+            if IF_PLOT_HOG_FEATURE:
+                plt.plot(fhog);plt.title(labels[time_stamp]);plt.show()
 
                     # }
 
             file_out.write("%d " % (labels[time_stamp]))
-            for idx in range(Hc.size):
+            for idx in range(fhog.size):
                 # idx + 1 to fit libsvm format (xgb)
-                file_out.write("%d:%f " % (idx + 1, patch_hog3d[idx]))
+                file_out.write("%d:%f " % (idx + 1, fhog[idx]))
             file_out.write('\n')
 
             time_stamp = time_stamp + 1
@@ -177,3 +181,6 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                 # } END LOOP
 
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
+
+toc = time.time() - tic
+print("Time elapsed: %s", toc)
