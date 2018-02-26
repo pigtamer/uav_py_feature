@@ -30,10 +30,11 @@ cap = cv.VideoCapture()
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
 # TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
 
-TRAIN_SET_RANGE = np.array([18])
+TRAIN_SET_RANGE = np.array([37])
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
 IF_PLOT_HOG_FEATURE = False
-
+TRAIN_MODE = "loose"
+SAVE_FEATURE = True
 # parse videos in training set
 # VID_NUM = 1; # for single test
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
@@ -84,19 +85,38 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                     plt.imshow(stcube[:][:][k])
                 plt.show()
 
-            FHOG3D = myhog3d.hog3d(stcube, labels[time_stamp], (10, 4), (10, 4), 2, False, False)
 
-            # if IF_PLOT_HOG_FEATURE:
-            #     plt.plot(FHOG3D);plt.title(labels[time_stamp]);plt.show()
+            label_cube = labels[time_stamp - CUBE_T + 1: time_stamp + 1]
 
-            file_out.write("%d " % (labels[time_stamp]))
-            for idx in range(FHOG3D.size):
-                # idx + 1 to fit libsvm format (xgb)
-                file_out.write("%d:%f " % (idx + 1, FHOG3D[idx]))
-            file_out.write('\n')
+            if TRAIN_MODE == "strict":
+                FINAL_LABEL_FOR_CUBE = 1
+                for label_of_frame in label_cube:
+                    FINAL_LABEL_FOR_CUBE  = FINAL_LABEL_FOR_CUBE and label_of_frame
+            elif TRAIN_MODE == "loose":
+                FINAL_LABEL_FOR_CUBE = 0
+                for label_of_frame in label_cube:
+                    FINAL_LABEL_FOR_CUBE  = FINAL_LABEL_FOR_CUBE or label_of_frame
+            else:
+                FINAL_LABEL_FOR_CUBE = labels[time_stamp]
 
-            time_stamp = time_stamp + 1
-            if time_stamp == locations.shape[0] : break
+            FHOG3D = myhog3d.hog3d(stcube, (10, 4), (10, 4), 2)
+
+            if IF_PLOT_HOG_FEATURE:
+                plt.plot(FHOG3D)
+                plt.title("%s : %s, [%d / %d]"%(FINAL_LABEL_FOR_CUBE, labels[time_stamp], time_stamp, locations.shape[0]))
+                plt.show()
+
+            assert label_cube[-1] == labels[time_stamp] # when or
+
+            if SAVE_FEATURE:
+                file_out.write("%d " % (FINAL_LABEL_FOR_CUBE))
+                for idx in range(FHOG3D.size):
+                    # idx + 1 to fit libsvm format (xgb)
+                    file_out.write("%d:%f " % (idx + 1, FHOG3D[idx]))
+                file_out.write('\n')
+
+        time_stamp = time_stamp + 1
+        if time_stamp == locations.shape[0] : break
 
     toc = time.time() - tic
     print("Time elapsed: %s", toc)
