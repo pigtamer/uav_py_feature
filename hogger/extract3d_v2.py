@@ -78,9 +78,10 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
     tic = time.time()
     
-    buffer = deque()    # buffer for st-cube
-    n_buffer = deque()
-
+    # buffer = deque()    # buffer for st-cube
+    # n_buffer = deque()
+    fbuffer = deque()    # buffer for st-cube
+    
     time_stamp = 0    
     while(True):
         ret, frame = cap.read()
@@ -95,29 +96,34 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
         y_0 = locations[time_stamp][1] # 2
         y_1 = locations[time_stamp][3] # 4
 
-        if time_stamp % CUBE_T == 0:
-            xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
-            yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
-
-            # xn_0, yn_0 = 100, 100 # let negative cube stay at somewhere
-            n_patch = frame[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
         
-        if not x_0 == -1 : # annot-parser would return coord as -1 if no target is in current frame
-            patch = frame[x_0:x_1, y_0:y_1]
-            patch = cv.resize(patch, (CUBE_X, CUBE_Y)) # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
-        else:
-            patch = n_patch
+        if x_0 == -1 : continue
+        fbuffer.append(frame)
 
         # ----------------- ST-CUBE generation with deque buffer --------------|
-        buffer.append(patch) # push a patch to the rear of stcube    
-        n_buffer.append(n_patch)
+        # patch = frame[x_0:x_1, y_0:y_1]
+        # patch = cv.resize(patch, (CUBE_X, CUBE_Y)) # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
 
-        if len(buffer) == CUBE_T + 1 and len(n_buffer) == CUBE_T + 1: 
-            buffer.popleft() # pop a frame from head when buffer is filled
-            stcube = np.array(buffer)
+        # buffer.append(patch) # push a patch to the rear of stcube    
+        # n_buffer.append(n_patch)
 
-            n_buffer.popleft() # pop a frame from head when buffer is filled
-            n_stcube = np.array(n_buffer)
+        if len(fbuffer) == CUBE_T + 1 :
+            fbuffer.popleft() # pop a frame from head when buffer is filled
+
+            stcube = []
+            n_stcube = []
+            
+            k = 0
+            for frms in fbuffer:
+                xn_0 = int(np.floor((frms.shape[0] - CUBE_X) * np.random.rand()))
+                yn_0 = int(np.floor((frms.shape[1] - CUBE_Y) * np.random.rand()))
+                n_stcube.append(frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y])
+                stcube.append(cv.resize(frms[x_0:x_1, y_0:y_1], (CUBE_X, CUBE_Y)))
+                k = k + 1
+
+            stcube = np.array(stcube)
+            n_stcube = np.array(n_stcube)
+
 
 
             stcube = gauss3d.smooth3d(stcube, GAU_SIGMA)
@@ -199,7 +205,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
         if time_stamp == locations.shape[0] : break
 
     toc = time.time() - tic
-    print("HoG Feature Extracted in : %5.3f sec;"%toc)
+    print("St-Cube Extracted. Time elapsed: %5.3f sec;"%toc)
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
 
 TOC = time.time() - TIC

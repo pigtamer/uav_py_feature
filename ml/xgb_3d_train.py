@@ -22,7 +22,7 @@ def evalerror(preds, dtrain):
 
 t = time.time()
 TRAIN_NUM = "ALL"
-TEST_NUM = 18
+TEST_NUM = "ALL"
 dtrain = xgb.DMatrix("../features3d/feature3d_%s.txt"%TRAIN_NUM)
 dtest = xgb.DMatrix("../features3d/feature3d_%s.txt"%TEST_NUM)
 
@@ -35,7 +35,7 @@ print(labels)
 param = {'max_depth': 5, 'eta': 1, 'silent': 1}
 
 watchlist = [(dtest, 'eval'), (dtrain, 'train')]
-num_round = 20
+num_round = 10
 
 dst = xgb.train(param, dtrain, num_round, watchlist, logregobj, evalerror) # dst is xgb.Booster. 
 dst.save_model("./hog3d.model")
