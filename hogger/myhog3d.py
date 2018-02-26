@@ -16,13 +16,13 @@ def gb3(mat, coord, size):
     return gb
 
 
-def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2):
+def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, THRES = 1.29107):
     # ---------------------------------------------------------------------/
     CSIZE, TSIZE = SIZE # set cell size
 
     CSTEP, TSTEP = STEP # set spatio and temporal step for main blocks
 
-    THRES = 1.29107
+    # THRES = 1.29107
 
     PHI = 0.5 * (1 + np.sqrt(5))
     # this is projection matrix
@@ -39,8 +39,6 @@ def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2):
     t_bgrid = np.arange(0, stcube.shape[0], TSTEP)   
     y_bgrid = np.arange(0, stcube.shape[1], CSTEP)
     x_bgrid = np.arange(0, stcube.shape[2], CSTEP)
-    
-    # BC_DIV = 2
     
     w, h, l = int(CSIZE / BC_DIV), int(CSIZE/BC_DIV), int(TSIZE/BC_DIV)
     fhog = np.array([])
@@ -70,21 +68,24 @@ def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2):
                                 qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
 
                             qb = qb - THRES
-                            qb[qb < 0] = 0
+                            
+                            if len(qb[qb < 0]) != 0: qb[qb < 0] = 0
 
                             if np.linalg.norm(qb) == 0: # deal wtih nan
                                 qb = np.zeros(qb.shape)
                             else:
-                                qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) 
+                                qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) #--(6)
 
                             Hc = Hc + qb
                             
-                            # Hc  = Hc / np.linalg.norm(Hc)
 
                 # print(Hc)
+
+                if np.linalg.norm(Hc) != 0: Hc  = Hc / np.linalg.norm(Hc)
+                
                 fhog = np.concatenate((fhog, Hc.flatten()))
     fhog[np.isnan(fhog)] = 0
-    
+
     if np.linalg.norm(fhog) == 0: # deal wtih nan
         fhog = np.zeros(fhog.shape)
     else:

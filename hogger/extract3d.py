@@ -35,8 +35,8 @@ IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
 IF_PLOT_HOG_FEATURE = False
 TRAIN_MODE = "loose"
 SAVE_FEATURE = True
+
 # parse videos in training set
-# VID_NUM = 1; # for single test
 TIC = time.time()
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     #   {
@@ -110,7 +110,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
             if IF_PLOT_HOG_FEATURE:
                 plt.plot(FHOG3D)
-                plt.title("C[%s]F[%s], [%d / %d]"%(FINAL_LABEL_FOR_CUBE, labels[time_stamp], time_stamp, locations.shape[0]))
+                plt.title("VID[%d], LAB[c%s : f%s], [%d / %d]"%(VID_NUM, FINAL_LABEL_FOR_CUBE, labels[time_stamp], time_stamp, locations.shape[0]))
                 plt.show()
 
             assert label_cube[-1] == labels[time_stamp]
