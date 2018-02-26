@@ -64,12 +64,18 @@ def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2):
 
                             # print(x, y) # checkpoint
                             
-                            qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
+                            if np.linalg.norm(gb) == 0: # deal with nan
+                                qb = np.zeros(np.matmul(PROJ, gb).shape)
+                            else:
+                                qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
 
                             qb = qb - THRES
                             qb[qb < 0] = 0
 
-                            qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) 
+                            if np.linalg.norm(qb) == 0: # deal wtih nan
+                                qb = np.zeros(qb.shape)
+                            else:
+                                qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) 
 
                             Hc = Hc + qb
                             

@@ -28,15 +28,16 @@ if not os.path.exists("../features3d"): os.makedirs("../features3d")
 cap = cv.VideoCapture()
 
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
-# TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
 
-TRAIN_SET_RANGE = np.array([37])
+TRAIN_SET_RANGE = drones_nums
+# TRAIN_SET_RANGE = [47]
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
-IF_PLOT_HOG_FEATURE = False
+IF_PLOT_HOG_FEATURE = True
 TRAIN_MODE = "loose"
 SAVE_FEATURE = True
 # parse videos in training set
 # VID_NUM = 1; # for single test
+TIC = time.time()
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     #   {
     tic = time.time()
@@ -49,21 +50,26 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
     # parse each video    
     time_stamp = 0
-    CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 4; 
+    CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 4; # define the size of each st-cube to be processed
 
-    buffer = deque()    # buffer 
+    buffer = deque()    # buffer for st-cube
     while(True):
         ret, frame = cap.read()
         if not ret: break
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # now is uint
 
-        frame = im2double(frame)# caution: each frame as double
+        frame = im2double(frame)# caution: set each frame as double
+
+        # the coord range of each st-cube
         x_0 = locations[time_stamp][0] # 1
         x_1 = locations[time_stamp][2] # 3
         y_0 = locations[time_stamp][1] # 2
         y_1 = locations[time_stamp][3] # 4
 
-        if not x_0 == -1 : 
+
+
+        ## !!!! WE MAY NEED MORE SAMPLES IN THIS SEC !!!
+        if not x_0 == -1 : # annot-parser would return coord as -1 if no target is in current frame
             patch = frame[x_0:x_1, y_0:y_1]
             patch = cv.resize(patch, (CUBE_X, CUBE_Y)) # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
         else:
@@ -103,10 +109,10 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
             if IF_PLOT_HOG_FEATURE:
                 plt.plot(FHOG3D)
-                plt.title("%s : %s, [%d / %d]"%(FINAL_LABEL_FOR_CUBE, labels[time_stamp], time_stamp, locations.shape[0]))
+                plt.title("C[%s]F[%s], [%d / %d]"%(FINAL_LABEL_FOR_CUBE, labels[time_stamp], time_stamp, locations.shape[0]))
                 plt.show()
 
-            assert label_cube[-1] == labels[time_stamp] # when or
+            assert label_cube[-1] == labels[time_stamp]
 
             if SAVE_FEATURE:
                 file_out.write("%d " % (FINAL_LABEL_FOR_CUBE))
@@ -119,5 +125,8 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
         if time_stamp == locations.shape[0] : break
 
     toc = time.time() - tic
-    print("Time elapsed: %s", toc)
+    print("Time elapsed: %s sec;"%toc)
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
+
+TOC = time.time() - TIC
+print("/ / / / / / / / / / / /\nDataset generated in: %s sec."%TOC)
