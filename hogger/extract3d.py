@@ -21,7 +21,7 @@ def im2double(im):
     if max_val != min_val:
         out = (im.astype('float') - min_val) / (max_val - min_val)
     else:
-        out = im
+        out = im.astype('float') / 255
     return out
 
 data_path = "D:/Proj/UAV/dataset/drones/"
@@ -32,8 +32,8 @@ cap = cv.VideoCapture()
 
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
 
-# TRAIN_SET_RANGE = drones_nums
-TRAIN_SET_RANGE = [48]
+TRAIN_SET_RANGE = drones_nums
+# TRAIN_SET_RANGE = [48]
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
 IF_PLOT_HOG_FEATURE = False
 TRAIN_MODE = "loose"
