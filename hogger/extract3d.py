@@ -1,12 +1,12 @@
 # !/usr/bin/python
 import os
-import sys
 import time
 import cv2 as cv
 import numpy as np
 import annot_parser
 import myhog3d
 import matplotlib.pyplot as plt
+# import seaborn as sns
 from collections import deque
 # import sklearn.??? as ??? # -- if needed
 
@@ -84,10 +84,10 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                     plt.imshow(stcube[:][:][k])
                 plt.show()
 
-            FHOG3D = myhog3d.hog3d(stcube, labels[time_stamp])
+            FHOG3D = myhog3d.hog3d(stcube, labels[time_stamp], (10, 4), (10, 4), 2, False, False)
 
-            if IF_PLOT_HOG_FEATURE:
-                plt.plot(FHOG3D);plt.title(labels[time_stamp]);plt.show()
+            # if IF_PLOT_HOG_FEATURE:
+            #     plt.plot(FHOG3D);plt.title(labels[time_stamp]);plt.show()
 
             file_out.write("%d " % (labels[time_stamp]))
             for idx in range(FHOG3D.size):

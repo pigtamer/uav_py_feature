@@ -16,7 +16,7 @@ def gb3(mat, coord, size):
     return gb
 
 
-def hog3d(stcube, label = True, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, IF_SHOW_PATCH = False, IF_PLOT_HOG_FEATURE = True):
+def hog3d(stcube, label = True, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, IF_SHOW_PATCH = False, IF_PLOT_HOG_FEATURE = False):
     # ---------------------------------------------------------------------/
     CSIZE, TSIZE = SIZE # set cell size
 
@@ -73,10 +73,13 @@ def hog3d(stcube, label = True, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, IF_S
 
                             Hc = Hc + qb
                             
-                            Hc  = Hc / np.linalg.norm(Hc)
+                            # Hc  = Hc / np.linalg.norm(Hc)
 
                 # print(Hc)
                 fhog = np.concatenate((fhog, Hc.flatten()))
+    
+    fhog  = fhog / np.linalg.norm(fhog)  
+    # print(np.linalg.norm(fhog))  
     if IF_PLOT_HOG_FEATURE:
         plt.plot(fhog);plt.title(label);plt.show()
 
