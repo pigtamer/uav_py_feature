@@ -66,7 +66,7 @@ def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, THRES = 1.29107):
                                 qb = np.zeros(np.matmul(PROJ, gb).shape)
                             else:
                                 qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
-
+                            qb[np.isnan(qb)] = 0
                             qb = qb - THRES
                             
                             if len(qb[qb < 0]) != 0: qb[qb < 0] = 0

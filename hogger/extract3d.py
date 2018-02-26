@@ -18,7 +18,10 @@ from collections import deque
 def im2double(im):
     min_val = np.min(im.ravel())
     max_val = np.max(im.ravel())
-    out = (im.astype('float') - min_val) / (max_val - min_val)
+    if max_val != min_val:
+        out = (im.astype('float') - min_val) / (max_val - min_val)
+    else:
+        out = im
     return out
 
 data_path = "D:/Proj/UAV/dataset/drones/"
@@ -29,8 +32,8 @@ cap = cv.VideoCapture()
 
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
 
-TRAIN_SET_RANGE = drones_nums
-# TRAIN_SET_RANGE = [47]
+# TRAIN_SET_RANGE = drones_nums
+TRAIN_SET_RANGE = [48]
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
 IF_PLOT_HOG_FEATURE = False
 TRAIN_MODE = "loose"
@@ -126,8 +129,8 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
         if time_stamp == locations.shape[0] : break
 
     toc = time.time() - tic
-    print("Time elapsed: %s sec;"%toc)
+    print("Time elapsed: %5.3f sec;"%toc)
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
 
 TOC = time.time() - TIC
-print("/ / / / / / / / / / / /\nDataset generated in: %s sec."%TOC)
+print("/ / / / / / / / / / / /\nDataset generated in: %5.3f sec."%TOC)
