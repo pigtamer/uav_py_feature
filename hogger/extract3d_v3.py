@@ -51,7 +51,7 @@ TRAIN_SET_RANGE = grp_2
 # ---------------------- PARAMS --------------------------------
 TRAIN_MODE = "strict"
 
-SAVE_FEATURE = False
+SAVE_FEATURE = True
 SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
 
 IF_SHOW_PATCH = not SAVE_FEATURE 
@@ -179,10 +179,10 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
 
 # ---------------------------------Negative------------------------------------
-
+            l_n_stcube = [] # list of negas
+            
             for idx in range(NEGA_SPF):
                 n_stcube = []
-                l_n_stcube = [] # list of negas
 
                 xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
                 yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
