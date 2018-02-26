@@ -83,8 +83,12 @@ def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2):
 
                 # print(Hc)
                 fhog = np.concatenate((fhog, Hc.flatten()))
+    fhog[np.isnan(fhog)] = 0
     
-    fhog  = fhog / np.linalg.norm(fhog)  
+    if np.linalg.norm(fhog) == 0: # deal wtih nan
+        fhog = np.zeros(fhog.shape)
+    else:
+        fhog  = fhog / np.linalg.norm(fhog)  
     # print(np.linalg.norm(fhog))  
 
     return fhog

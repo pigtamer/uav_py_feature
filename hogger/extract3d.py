@@ -32,7 +32,7 @@ drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
 TRAIN_SET_RANGE = drones_nums
 # TRAIN_SET_RANGE = [47]
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
-IF_PLOT_HOG_FEATURE = True
+IF_PLOT_HOG_FEATURE = False
 TRAIN_MODE = "loose"
 SAVE_FEATURE = True
 # parse videos in training set
@@ -40,7 +40,6 @@ SAVE_FEATURE = True
 TIC = time.time()
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     #   {
-    tic = time.time()
     
     locations, labels = annot_parser.parse("X:/UAV/annot/drones/", VID_NUM)
     data_num = VID_NUM
@@ -52,6 +51,8 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     time_stamp = 0
     CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 4; # define the size of each st-cube to be processed
 
+    tic = time.time()
+    
     buffer = deque()    # buffer for st-cube
     while(True):
         ret, frame = cap.read()
