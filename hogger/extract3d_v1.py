@@ -34,8 +34,8 @@ if not os.path.exists("../features3d"): os.makedirs("../features3d")
 
 cap = cv.VideoCapture()
 
+## -------------------- DATASET -------------------------------
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
-
 grp_ALL = drones_nums
 grp_0 = [1, 11, 12]
 grp_1 = [18, 19, 29]
@@ -43,12 +43,12 @@ grp_2 = [37]
 grp_3 = [46, 47, 48, 49]
 grp_4 = [53, 55, 56]
 
-
-TRAIN_SET_RANGE = grp_3
+TRAIN_SET_RANGE = grp_2
 # TRAIN_SET_RANGE = [29]
+
+
+# ---------------------- PARAMS --------------------------------
 TRAIN_MODE = "strict"
-
-
 SAVE_FEATURE = True
 SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
 
@@ -134,13 +134,13 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                 for k in range(CUBE_T):
                     plt.subplot(1, CUBE_T, k + 1)
                     plt.title(label_cube[k])
-                    plt.imshow(stcube[:][:][k])
+                    plt.imshow(stcube[k, :, :])
                 plt.show()
 
                 plt.figure(figsize = (4* CUBE_T, 6))                
                 for k in range(CUBE_T):
                     plt.subplot(1, CUBE_T, k + 1)
-                    plt.imshow(n_stcube[:][:][k])
+                    plt.imshow(n_stcube[k, :, :])
                 plt.show()
 
             if TRAIN_MODE == "strict":

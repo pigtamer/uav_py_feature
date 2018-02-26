@@ -1,5 +1,6 @@
 # !/usr/bin/python
-# Change buffer to frame buffer and calc patches later
+
+# Based on previous versions, this script extract many negative patches for each timestamp
 import os
 import time
 import cv2 as cv
@@ -50,7 +51,7 @@ TRAIN_SET_RANGE = grp_2
 # ---------------------- PARAMS --------------------------------
 TRAIN_MODE = "strict"
 
-SAVE_FEATURE = True
+SAVE_FEATURE = False
 SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
 
 IF_SHOW_PATCH = not SAVE_FEATURE 
@@ -62,6 +63,8 @@ HOG_STEP = (int(CUBE_X / 4), int(CUBE_T))
 BCDIV = 3
 GAU_SIGMA = (1, 2, 2) #(t,y,x)
 
+
+NEGA_SPF = 10
 group_file_out = open("../features3d/feature3d_ALL.txt", 'w')
 # NEGATIVE_SAMPLES_PER_FRAME = 1
 # parse videos in training set
@@ -112,50 +115,26 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
             fbuffer.popleft() # pop a frame from head when buffer is filled
 
             stcube = []
-            n_stcube = []
+            
 
             xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
             yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
-
-            k = 0
             for frms in fbuffer:
-                n_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
-                n_stcube.append(n_patch)
+                rand_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+                # n_stcube.append(n_patch)
                 if x_0 == -1:
-                    stcube.append(n_patch)
+                    stcube.append(rand_patch)
                 else:
                     patch = cv.resize(frms[x_0:x_1, y_0:y_1], (CUBE_X, CUBE_Y))
                     stcube.append(patch)
-                k = k + 1
 
+# -----------------------------positive --------------------------------------
             stcube = np.array(stcube)
-            n_stcube = np.array(n_stcube)
-
-
-
-            stcube = gauss3d.smooth3d(stcube, GAU_SIGMA)
-            n_stcube = gauss3d.smooth3d(n_stcube, GAU_SIGMA)
-            
+            stcube = gauss3d.smooth3d(stcube, GAU_SIGMA)    
             FHOG3D = myhog3d.compute(stcube, HOG_SIZE, HOG_STEP, BCDIV)
-            N_FHOG3D = myhog3d.compute(n_stcube,  HOG_SIZE, HOG_STEP, BCDIV)
 
 
             label_cube = labels[time_stamp - CUBE_T + 1: time_stamp + 1]
-            
-            if CUBE_T < 5 and IF_SHOW_PATCH:
-                plt.figure(figsize = (4* CUBE_T, 6))
-                for k in range(CUBE_T):
-                    plt.subplot(1, CUBE_T, k + 1)
-                    plt.title(label_cube[k])
-                    plt.imshow(stcube[k, :, :])
-                plt.show()
-
-                plt.figure(figsize = (4* CUBE_T, 6))                
-                for k in range(CUBE_T):
-                    plt.subplot(1, CUBE_T, k + 1)
-                    plt.imshow(n_stcube[k, :, :])
-                plt.show()
-
             if TRAIN_MODE == "strict":
                 FINAL_LABEL_FOR_CUBE = 1
                 for label_of_frame in label_cube:
@@ -171,14 +150,9 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
 
             if IF_PLOT_HOG_FEATURE:
-                plt.figure(figsize=(8, 12))
-                plt.subplot(2, 1, 1)
                 plt.plot(FHOG3D)
                 plt.title("[%s], VID[%d][%d / %d], s.t.[%s], fpc[%d], gauss[%s]"%(FINAL_LABEL_FOR_CUBE, VID_NUM, time_stamp, locations.shape[0], TRAIN_MODE, CUBE_T, GAU_SIGMA)  )              
-                plt.subplot(2, 1, 2)
-                fig_2 = plt.plot(N_FHOG3D)
-                plt.title("Random Negative Sample")
-                plt.show()
+
 
             # assert label_cube[-1] == labels[time_stamp]
             if SAVE_FEATURE:
@@ -194,18 +168,63 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                     group_file_out.write("%d:%f " % (idx + 1, FHOG3D[idx]))
                 group_file_out.write('\n')
 
-            if SAVE_EXTRA_NEGATIVE:
-                file_out.write("%d "%0)
-                for idx in range(FHOG3D.size):
-                    # idx + 1 to fit libsvm format (xgb)
-                    file_out.write("%d:%f " % (idx + 1, N_FHOG3D[idx]))
-                file_out.write('\n')
+            if CUBE_T < 5 and IF_SHOW_PATCH:
+                plt.figure(figsize = (4* CUBE_T, 6))
+                for k in range(CUBE_T):
+                    plt.subplot(1, CUBE_T, k + 1)
+                    plt.title(label_cube[k])
+                    plt.imshow(stcube[k, :, :])
+                plt.show()
 
-                group_file_out.write("%d "%0)
-                for idx in range(FHOG3D.size):
-                    # idx + 1 to fit libsvm format (xgb)
-                    group_file_out.write("%d:%f " % (idx + 1, N_FHOG3D[idx]))
-                group_file_out.write('\n')
+
+
+# ---------------------------------Negative------------------------------------
+
+            for idx in range(NEGA_SPF):
+                n_stcube = []
+                l_n_stcube = [] # list of negas
+
+                xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
+                yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
+                for frms in fbuffer:
+                    n_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+                    n_stcube.append(n_patch)
+                n_stcube = np.array(n_stcube)
+                n_stcube = gauss3d.smooth3d(n_stcube, GAU_SIGMA)
+                l_n_stcube.append(n_stcube)
+
+            k = 0
+            for n_stcube in l_n_stcube:
+                N_FHOG3D = myhog3d.compute(n_stcube,  HOG_SIZE, HOG_STEP, BCDIV)
+
+                if SAVE_EXTRA_NEGATIVE:
+                    file_out.write("%d "%0)
+                    for idx in range(N_FHOG3D.size):
+                        # idx + 1 to fit libsvm format (xgb)
+                        file_out.write("%d:%f " % (idx + 1, N_FHOG3D[idx]))
+                    file_out.write('\n')
+
+                    group_file_out.write("%d "%0)
+                    for idx in range(N_FHOG3D.size):
+                        # idx + 1 to fit libsvm format (xgb)
+                        group_file_out.write("%d:%f " % (idx + 1, N_FHOG3D[idx]))
+                    group_file_out.write('\n')
+
+                if IF_PLOT_HOG_FEATURE and k == 0:
+                    plt.plot(N_FHOG3D)
+                    plt.title("Random Negative Sample")
+                    plt.show()
+                k  = k + 1
+
+            
+            if CUBE_T < 5 and IF_SHOW_PATCH:
+                plt.figure(figsize = (4* CUBE_T, 6))                
+                for k in range(CUBE_T):
+                    plt.subplot(1, CUBE_T, k + 1)
+                    plt.imshow(n_stcube[k, :, :])
+                plt.show()
+
+
                 
 
         time_stamp = time_stamp + 1
