@@ -16,7 +16,7 @@ def gb3(mat, coord, size):
     return gb
 
 
-def hog3d(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, THRES = 1.29107):
+def compute(stcube, SIZE = (10, 4), STEP = (10, 4), BC_DIV = 2, THRES = 1.29107):
     # ---------------------------------------------------------------------/
     CSIZE, TSIZE = SIZE # set cell size
 
