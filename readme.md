@@ -14,6 +14,14 @@
 
 6. [Forum](http://answers.opencv.org/question/10374/how-to-training-hog-and-use-my-hogdescriptor/)
 
+## HoG 3D
+HoG 3d feature is implemented by myself. Referencing to:
+
+1. [A Spatio-Temporal Descriptor Based on 3D-Gradients](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwiirOSqjqPZAhUpwVQKHUpyB3AQFggsMAA&url=https%3A%2F%2Fhal.inria.fr%2Finria-00514853%2Fdocument&usg=AOvVaw0mijsjePgJYJ4jAGXSxANF)
+
+2. [Behavior recognition via sparse spatio-temporal features](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&ved=0ahUKEwicrKfEjqPZAhVFylQKHRjaB3AQFgg6MAE&url=https%3A%2F%2Fpdollar.github.io%2Ffiles%2Fpapers%2FDollarVSPETS05cuboids.pdf&usg=AOvVaw3P5KcCPAyHlxoHcp0dg-Xr)
+
+
 
 ## Regex
 
@@ -28,7 +36,7 @@
 
 ## XGBoost
 
-**[Git Deom Repo for Py](https://github.com/dmlc/xgboost/tree/master/demo/guide-python)**
+**[Git Demo Repo for Py](https://github.com/dmlc/xgboost/tree/master/demo/guide-python)**
 
 1. [Example for custom obj func](https://github.com/dmlc/xgboost/blob/master/demo/guide-python/custom_objective.py)
 
@@ -39,6 +47,6 @@
 ## Trifles on python
 
 
-## Other shits
+## Other things
 
 Can try scikit module: sklearn.ensemble.GradientBoostingClassifier() as an alternative.

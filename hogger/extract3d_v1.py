@@ -45,8 +45,8 @@ TRAIN_SET_RANGE = grp_1
 TRAIN_MODE = "strict"
 
 
-SAVE_FEATURE = True
-SAVE_EXTRA_NEGATIVE = False
+SAVE_FEATURE = False
+SAVE_EXTRA_NEGATIVE = False and SAVE_FEATURE
 
 IF_SHOW_PATCH = not SAVE_FEATURE 
 IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
@@ -55,7 +55,7 @@ CUBE_T, CUBE_Y, CUBE_X = (4, 40, 40)# define the size of each st-cube to be proc
 HOG_SIZE = (int(CUBE_X / 4), int(CUBE_T))
 HOG_STEP = (int(CUBE_X / 4), int(CUBE_T))
 BCDIV = 3
-GAU_SIGMA = (1, 3, 3) #(t,y,x)
+GAU_SIGMA = (1, 2, 2) #(t,y,x)
 
 group_file_out = open("../features3d/ALL_FEATURE3d.txt", 'w')
 # NEGATIVE_SAMPLES_PER_FRAME = 1
@@ -91,11 +91,12 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
         y_0 = locations[time_stamp][1] # 2
         y_1 = locations[time_stamp][3] # 4
 
-        # xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
-        # yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
+        if time_stamp % CUBE_T == 0:
+            xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
+            yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
 
-        xn_0, yn_0 = 100, 100 # let negative cube stay at somewhere
-        n_patch = frame[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+            # xn_0, yn_0 = 100, 100 # let negative cube stay at somewhere
+            n_patch = frame[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
         
         if not x_0 == -1 : # annot-parser would return coord as -1 if no target is in current frame
             patch = frame[x_0:x_1, y_0:y_1]
