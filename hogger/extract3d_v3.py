@@ -57,13 +57,13 @@ SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
 IF_SHOW_PATCH = not SAVE_FEATURE 
 IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
 
-CUBE_T, CUBE_Y, CUBE_X = (4, 64, 64)# define the size of each st-cube to be processed
-HOG_SIZE = (int(CUBE_X / 4), int(CUBE_T / 2))
-HOG_STEP = (int(CUBE_X / 4), int(CUBE_T / 2))
+CUBE_T, CUBE_Y, CUBE_X = (4, 40, 40)# define the size of each st-cube to be processed
+HOG_SIZE = (int(CUBE_X / 2), int(CUBE_T))
+HOG_STEP = (int(CUBE_X / 2), int(CUBE_T))
 BCDIV = 3
 
-GAU_SIGMA = (1, 1, 1) #(t,y,x)
-IF_LOG = False
+GAU_SIGMA = (1, 3, 3) #(t,y,x)
+IF_LOG = True
 
 
 NEGA_SPF = 10
@@ -107,12 +107,6 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
         fbuffer.append(frame)
 
         # ----------------- ST-CUBE generation with deque buffer --------------|
-        # patch = frame[x_0:x_1, y_0:y_1]
-        # patch = cv.resize(patch, (CUBE_X, CUBE_Y)) # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
-
-        # buffer.append(patch) # push a patch to the rear of stcube    
-        # n_buffer.append(n_patch)
-
         if len(fbuffer) == CUBE_T + 1 :
             fbuffer.popleft() # pop a frame from head when buffer is filled
 

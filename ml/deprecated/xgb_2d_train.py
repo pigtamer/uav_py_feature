@@ -21,7 +21,7 @@ def evalerror(preds, dtrain):
     return 'error', float(sum(labels != (preds > 0.0))) / len(labels)
 
 t = time.time()
-TRAIN_NUM = 1
+TRAIN_NUM = 12
 TEST_NUM = 12
 dtrain = xgb.DMatrix("../features/feature_%s.txt"%TRAIN_NUM)
 dtest = xgb.DMatrix("../features/feature_%s.txt"%TEST_NUM)

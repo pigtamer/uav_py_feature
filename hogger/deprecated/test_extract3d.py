@@ -1,12 +1,19 @@
 # !/usr/bin/python
+
+# Based on previous versions, this script extract many negative patches for each timestamp
 import os
-import sys
 import time
 import cv2 as cv
 import numpy as np
+# import seaborn as sns
 import annot_parser
+import myhog3d
+import gauss3d
 import matplotlib.pyplot as plt
+# import seaborn as sns
 from collections import deque
+
+# sns.set()
 # import sklearn.??? as ??? # -- if needed
 
 ## ---- REF ---
@@ -17,170 +24,212 @@ from collections import deque
 def im2double(im):
     min_val = np.min(im.ravel())
     max_val = np.max(im.ravel())
-    out = (im.astype('float') - min_val) / (max_val - min_val)
+    if max_val != min_val:
+        out = (im.astype('float') - min_val) / (max_val - min_val)
+    else:
+        out = im.astype('float') / 255
     return out
-
-def gb3(mat, coord, size):
-    assert len(mat.shape) == 3
-    def iv3(mat):
-        return np.sum(mat)
-    w, h, l = size
-    # w,h,l = l,h,w
-    w, h, l = w+1, h+1, l+1
-    x, y, t = coord
-    # x,y,t=t,y,x
-    gb = (iv3(mat[0:x+w, 0:y+h, 0:t+l]) - iv3(mat[0:x, 0:y+h, 0:t+l]) - iv3(mat[0:x+w, 0:y, 0:t+l]) + iv3(mat[0:x, 0:y, 0:t+l])) - (iv3(mat[0:x+w, 0:y+h, 0:t]) - iv3(mat[0:x, 0:y+h, 0:t]) - iv3(mat[0:x+w, 0:y, 0:t]) + iv3(mat[0:x, 0:y, 0:t]))  
-    return gb
-
 
 data_path = "D:/Proj/UAV/dataset/drones/"
 data_postfix = ".avi"
-if not os.path.exists("../features3d"): os.makedirs("../features3d")
+if not os.path.exists("./dumps"): os.makedirs("./dumps")
 
 cap = cv.VideoCapture()
 
+## -------------------- DATASET -------------------------------
 drones_nums = [1, 11, 12, 18, 19, 29, 37, 46, 47, 48, 49, 53, 55, 56]
-# TRAIN_SET_RANGE = drones_nums[0:1] # select some videos
+grp_ALL = drones_nums
+grp_0 = [1, 11, 12]
+grp_1 = [18, 19, 29]
+grp_2 = [37]
+grp_3 = [46, 47, 48, 49]
+grp_4 = [53, 55, 56]
 
-TRAIN_SET_RANGE = np.array([1])
-IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
-IF_PLOT_HOG_FEATURE = False
+TRAIN_SET_RANGE = grp_0
+# TRAIN_SET_RANGE = [29]
 
+# ---------------------- PARAMS --------------------------------
+TRAIN_MODE = "strict"
+
+SAVE_FEATURE = True
+SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
+
+IF_SHOW_PATCH = not SAVE_FEATURE 
+IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
+
+CUBE_T, CUBE_Y, CUBE_X = (4, 64, 64)# define the size of each st-cube to be processed
+HOG_SIZE = (int(CUBE_X / 2), int(CUBE_T))
+HOG_STEP = (int(CUBE_X / 2), int(CUBE_T))
+BCDIV = 3
+
+GAU_SIGMA = (1, 1, 1) #(t,y,x)
+IF_LOG = False
+
+
+NEGA_SPF = 10
+group_file_out = open("./dumps/test.txt", 'w')
+# NEGATIVE_SAMPLES_PER_FRAME = 1
 # parse videos in training set
-# VID_NUM = 1; # for single test
+TIC = time.time()
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     #   {
-    tic = time.time()
     
     locations, labels = annot_parser.parse("X:/UAV/annot/drones/", VID_NUM)
     data_num = VID_NUM
 
     cap = cv.VideoCapture(data_path + "Video_%s"%data_num + data_postfix)
-    file_out = open("../features3d/feature3d_%d.txt"%VID_NUM, 'w')
+    file_out = open("./dumps/dump.txt"%VID_NUM, 'w')
 
     # parse each video    
-    time_stamp = 0
-    CUBE_X, CUBE_Y, CUBE_T = 40 , 40, 4; 
 
-    buffer = deque()    # buffer 
-    while(True):
+    tic = time.time()
+    
+    # buffer = deque()    # buffer for st-cube
+    # n_buffer = deque()
+    fbuffer = deque()    # buffer for st-cube
+    
+    time_stamp = 0    
+    while(time_stamp < 6):
         ret, frame = cap.read()
         if not ret: break
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # now is uint
 
-        frame = im2double(frame)# caution: each frame as double
+        frame = im2double(frame)# caution: set each frame as double
+
+        # the coord range of each st-cube
         x_0 = locations[time_stamp][0] # 1
         x_1 = locations[time_stamp][2] # 3
         y_0 = locations[time_stamp][1] # 2
         y_1 = locations[time_stamp][3] # 4
 
-        if not x_0 == -1 : 
-            patch = frame[x_0:x_1, y_0:y_1]
-            patch = cv.resize(patch, (CUBE_X, CUBE_Y)) # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
-        else:
-            rand_nega_x = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
-            rand_nega_y = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
-            patch = frame[rand_nega_x : rand_nega_x + CUBE_X, rand_nega_y : rand_nega_y + CUBE_Y]
+        
+        # if x_0 == -1 : continue
+        fbuffer.append(frame)
 
         # ----------------- ST-CUBE generation with deque buffer --------------|
-        buffer.append(patch) # push a patch to the rear of stcube    
+        # patch = frame[x_0:x_1, y_0:y_1]
+        # patch = cv.resize(patch, (CUBE_X, CUBE_Y)) # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
 
-        if len(buffer) == CUBE_T + 1: 
-            buffer.popleft() # pop a frame from head when buffer is filled
-            stcube = np.array(buffer)
-            # print(stcube.shape)
-            [dt, dy, dx] = np.gradient(stcube, 1, 1, 1) # NAIVE grad in 3-dims
+        # buffer.append(patch) # push a patch to the rear of stcube    
+        # n_buffer.append(n_patch)
+
+        if len(fbuffer) == CUBE_T + 1 :
+            fbuffer.popleft() # pop a frame from head when buffer is filled
+
+            stcube = []
+            
+
+            xn_0 = int(np.floor((frame.shape[0] - (x_1 - x_0)) * np.random.rand()))
+            yn_0 = int(np.floor((frame.shape[1] - (y_1 - y_0)) * np.random.rand()))
+            for frms in fbuffer:
+                rand_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+                rand_patch = cv.resize(rand_patch, (CUBE_X, CUBE_Y))
+                if IF_LOG: rand_patch = cv.Laplacian(rand_patch, cv.CV_64F)
+                
+                # n_stcube.append(n_patch)
+                if x_0 == -1:
+                    stcube.append(rand_patch)
+                else:
+                    patch = cv.resize(frms[x_0:x_1, y_0:y_1], (CUBE_X, CUBE_Y))
+                    if IF_LOG: patch = cv.Laplacian(patch, cv.CV_64F)
+                    stcube.append(patch)
+
+# -----------------------------positive --------------------------------------
+            stcube = np.array(stcube)
+            stcube = gauss3d.smooth3d(stcube, GAU_SIGMA)    
+            FHOG3D = myhog3d.compute(stcube, HOG_SIZE, HOG_STEP, BCDIV)
+
+            label_cube = labels[time_stamp - CUBE_T + 1: time_stamp + 1]
+            if TRAIN_MODE == "strict":
+                FINAL_LABEL_FOR_CUBE = 1
+                for label_of_frame in label_cube:
+                    FINAL_LABEL_FOR_CUBE  = FINAL_LABEL_FOR_CUBE and label_of_frame
+            elif TRAIN_MODE == "loose":
+                FINAL_LABEL_FOR_CUBE = 0
+                for label_of_frame in label_cube:
+                    FINAL_LABEL_FOR_CUBE  = FINAL_LABEL_FOR_CUBE or label_of_frame
+            elif TRAIN_MODE == "current":
+                FINAL_LABEL_FOR_CUBE = labels[time_stamp]
+            else:
+                FINAL_LABEL_FOR_CUBE = labels[time_stamp]
+
+
+            if IF_PLOT_HOG_FEATURE:
+                plt.plot(FHOG3D)
+                plt.title("[%s], VID[%d][%d / %d], s.t.[%s], fpc[%d], gauss[%s]"%(FINAL_LABEL_FOR_CUBE, VID_NUM, time_stamp, locations.shape[0], TRAIN_MODE, CUBE_T, GAU_SIGMA)  )              
+
+
+            # assert label_cube[-1] == labels[time_stamp]
+            if SAVE_FEATURE:
+                pass
 
             if CUBE_T < 5 and IF_SHOW_PATCH:
+                plt.figure(figsize = (4* CUBE_T, 6))
                 for k in range(CUBE_T):
                     plt.subplot(1, CUBE_T, k + 1)
-                    plt.imshow(stcube[:][:][k])
+                    plt.title(label_cube[k])
+                    plt.imshow(stcube[k, :, :])
                 plt.show()
 
-        # ---------------------------------------------------------------------/
 
-            CSIZE, TSIZE = 10, int(CUBE_T / 2) # set cell size
 
-            CSTEP, TSTEP = 10, TSIZE # set spatio and temporal step for main blocks
-
-            THRES = 1.29107
-            PHI = 0.5 * (1 + np.sqrt(5))
-            PROJ = np.array([[1,1,1], [1,1,-1], [1,-1,1], [1,-1,-1], [-1,1,1], [-1,1,-1], [-1,-1,1], [-1,-1,-1], 
-            [0,1/PHI,PHI], [0,1/PHI,-PHI], [0,-1/PHI,PHI], [0,-1/PHI,-PHI], 
-            [1/PHI,PHI,0], [1/PHI,-PHI,0], [-1/PHI,PHI,0], [-1/PHI,-PHI,0], 
-            [PHI,0,1/PHI], [PHI,0,-1/PHI], [-PHI,0,1/PHI], [-PHI,0,-1/PHI]])
-
-            # CALC HOG3d IN EACH ST_CUBE
-            #{
-
-            t_bgrid = np.arange(0, stcube.shape[0], TSTEP)   
-            y_bgrid = np.arange(0, stcube.shape[1], CSTEP)
-            x_bgrid = np.arange(0, stcube.shape[2], CSTEP)
+# ---------------------------------Negative------------------------------------
+            l_n_stcube = [] # list of negas
             
-            BC_DIV = 2
-            # t_bgrid = t_grid[0: len(t_grid)+1: TSTEP*BC_DIV]
-            # y_bgrid = t_grid[0: len(y_grid)+1: CSTEP*BC_DIV]
-            # x_bgrid = t_grid[0: len(x_grid)+1: CSTEP*BC_DIV]
+            for idx in range(NEGA_SPF):
+                n_stcube = []
+
+                xn_0 = int(np.floor((frame.shape[0] - (x_1 - x_0)) * np.random.rand()))
+                yn_0 = int(np.floor((frame.shape[1] - (y_1 - y_0)) * np.random.rand()))
+                for frms in fbuffer:
+                    n_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+                    n_patch = cv.resize(n_patch, (CUBE_X, CUBE_Y))
+                    if IF_LOG: n_patch = cv.Laplacian(n_patch, cv.CV_64F)
+                    n_stcube.append(n_patch)
+                n_stcube = np.array(n_stcube)
+                n_stcube = gauss3d.smooth3d(n_stcube, GAU_SIGMA)
+                l_n_stcube.append(n_stcube)
+
+            k = 0
+            for n_stcube in l_n_stcube:
+                N_FHOG3D = myhog3d.compute(n_stcube,  HOG_SIZE, HOG_STEP, BCDIV)
+
+                if SAVE_EXTRA_NEGATIVE:
+                    file_out.write("%d "%0)
+                    for idx in range(N_FHOG3D.size):
+                        # idx + 1 to fit libsvm format (xgb)
+                        file_out.write("%d:%f " % (idx + 1, N_FHOG3D[idx]))
+                    file_out.write('\n')
+
+                    group_file_out.write("%d "%0)
+                    for idx in range(N_FHOG3D.size):
+                        # idx + 1 to fit libsvm format (xgb)
+                        group_file_out.write("%d:%f " % (idx + 1, N_FHOG3D[idx]))
+                    group_file_out.write('\n')
+
+                if IF_PLOT_HOG_FEATURE and k == 0:
+                    plt.plot(N_FHOG3D)
+                    plt.title("Random Negative Sample")
+                    plt.show()
+                k  = k + 1
+
             
-            w, h, l = int(CSIZE / BC_DIV), int(CSIZE/BC_DIV), int(TSIZE/BC_DIV)
-            cnt = 0
-            CNT = 0
-            fhog = np.array([])
-            # in this looop we process each cell
-            for xb in x_bgrid:
-                for yb in y_bgrid:
-                    for tb in t_bgrid:
-                        CNT = CNT + 1
-                        # each subblock
-                        Hc = np.zeros((20,))
-                        for xc in range(BC_DIV):
-                            for yc in range(BC_DIV):
-                                for tc in range(BC_DIV):
-                                    x = xb + xc*w
-                                    y = yb + yc*h
-                                    t = tb + tc*l
-                                    gb_x = gb3(dx, (t, y, x), (l, h, w))
-                                    gb_y = gb3(dy, (t, y, x), (l, h, w))
-                                    gb_t = gb3(dt, (t, y, x), (l, h, w))
-                                    
-                                    gb = np.array([gb_x, gb_y, gb_t])
+            if CUBE_T < 5 and IF_SHOW_PATCH:
+                plt.figure(figsize = (4* CUBE_T, 6))                
+                for k in range(CUBE_T):
+                    plt.subplot(1, CUBE_T, k + 1)
+                    plt.imshow(n_stcube[k, :, :])
+                plt.show()
 
-                                    # print(x, y) # checkpoint
-                                    
-                                    qb = np.matmul(PROJ, gb) / np.linalg.norm(gb) #--(5)
 
-                                    qb = qb - THRES
-                                    qb[qb < 0] = 0
+                
 
-                                    qb = np.linalg.norm(gb) * qb / np.linalg.norm(qb) 
-
-                                    Hc = Hc + qb
-                                    
-                                    # Hc[np.isnan(Hc)] = 0
-
-                                    Hc  = Hc / np.linalg.norm(Hc)
-
-                                    cnt =  cnt + 1
-                        # print(Hc)
-                        fhog = np.concatenate((fhog, Hc.flatten()))
-            # print(cnt, Hc.shape)       
-            # print(CNT)
-            # print(fhog.shape)
-            if IF_PLOT_HOG_FEATURE:
-                plt.plot(fhog);plt.title(labels[time_stamp]);plt.show()
-
-                    # }
-            
-            file_out.write("%d " % (labels[time_stamp]))
-            for idx in range(fhog.size):
-                # idx + 1 to fit libsvm format (xgb)
-                file_out.write("%d:%f " % (idx + 1, fhog[idx]))
-            file_out.write('\n')
-
-            time_stamp = time_stamp + 1
-            if time_stamp == locations.shape[0] : break
-                # } END LOOP
+        time_stamp = time_stamp + 1
+        if time_stamp == locations.shape[0] : break
 
     toc = time.time() - tic
-    print("Time elapsed: %s", toc)
+    print("HoG Feature Extracted in : %5.3f sec;"%toc)
     # if len(buffer) == CUBE_T: print("Buffer size correct: %d for %d."%(len(buffer), CUBE_T))
+
+TOC = time.time() - TIC
+print("/ / / / / / / / / / / /\nDataset generated in: %5.3f sec."%TOC)

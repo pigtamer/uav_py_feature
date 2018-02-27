@@ -28,14 +28,14 @@ cap = cv.VideoCapture(data_path + "Video_%s"%data_num + data_postfix)
 # ---------------------- PARAMS --------------------------------
 TRAIN_MODE = "strict"
 
-CUBE_T, CUBE_Y, CUBE_X = (4, 64, 64)# define the size of each st-cube to be processed
+CUBE_T, CUBE_Y, CUBE_X = (4, 100, 100)# define the size of each st-cube to be processed
 CSTEP, TSTEP = (CUBE_X, CUBE_T)
-HOG_SIZE = (int(CUBE_X / 4), int(CUBE_T / 2))
-HOG_STEP = (int(CUBE_X / 4), int(CUBE_T / 2))
+HOG_SIZE = (int(CUBE_X / 3), int(CUBE_T))
+HOG_STEP = (int(CUBE_X / 3), int(CUBE_T))
 BCDIV = 3
 
-GAU_SIGMA = (1, 1, 1) #(t,y,x)
-IF_LOG = False
+GAU_SIGMA = (1, 3, 3) #(t,y,x)
+IF_LOG = True
 
 STEP = CSTEP
 # ---------------------------------------------------------------
@@ -46,16 +46,19 @@ tic = time.time()
 while(True):
     ret, frame = cap.read()
     if not ret: break
+
+    # frame = frame[100: 480, 280:640]
+    
     frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # now is uint
 
     frame = im2double(frame)# caution: set each frame as double
 
     fbuffer.append(frame)
 
-    print(frame.shape)
+    # print(frame.shape)
     # T_GRID = np.arange(0, frame.shape[0], CUBE_T)   
-    Y_GRID = np.arange(0, frame.shape[1] - CUBE_Y, STEP)
-    X_GRID = np.arange(0, frame.shape[0] - CUBE_X, STEP)
+    Y_GRID = np.arange(0, frame.shape[1] - CUBE_X, STEP)
+    X_GRID = np.arange(0, frame.shape[0] - CUBE_Y, STEP)
 
     if len(fbuffer) == CUBE_T + 1 :
         fbuffer.popleft() # pop a frame from head when buffer is filled
@@ -68,24 +71,25 @@ while(True):
                 stcube = []
                 for frms in fbuffer:
                     patch = frms[x_0:x_1, y_0:y_1]
+                    patch = cv.resize(patch, (40, 40))
                     if IF_LOG: patch = cv.Laplacian(patch, cv.CV_64F)
                     stcube.append(patch)
 
                 stcube = np.array(stcube)
                 stcube = gauss3d.smooth3d(stcube, GAU_SIGMA)    
                 fhog = myhog3d.compute(stcube, HOG_SIZE, HOG_STEP, BCDIV)
-
+                # print(fhog.shape)
                 HOG_GRID.append(fhog)
+
         HOG_GRID = np.array(HOG_GRID)
-        print(HOG_GRID.shape)        
-        # # HOG_GRID = HOG_GRID[:, :, 0]
         DM_GRID = xgb.DMatrix(HOG_GRID)
 
         ranks = dst.predict(DM_GRID)
         # ranks[ranks > 0.5 * np.max(ranks)] = 0
          
         idx = np.argmax(ranks)
-        RANK_MAP = ranks.reshape((int(frame.shape[0]/CUBE_X) - 1, int(frame.shape[1]/CUBE_Y) - 1))
+        # RANK_MAP = ranks.reshape((int(int(frame.shape[0] - CUBE_X)/CUBE_X), int(int(frame.shape[1] - CUBE_Y)/CUBE_Y)))
+        RANK_MAP = ranks.reshape(len(X_GRID), len(Y_GRID))
 
         PEAK_MAP = RANK_MAP.copy()
         PEAK_MAP[PEAK_MAP < np.max(PEAK_MAP)] = 0
@@ -93,22 +97,22 @@ while(True):
         v1 = (int(CUBE_X * (idx % int(frame.shape[1] / CUBE_Y))), int(CUBE_Y * (idx / int(frame.shape[1] / CUBE_Y))))
         v2 = (v1[0] + CUBE_X, v1[1] + CUBE_Y)
         
-        print(CUBE_X * (idx % int(frame.shape[1] / CUBE_Y)), CUBE_Y * (idx / int(frame.shape[1] / CUBE_Y)) )
+        print(v1)
         # for k in range(ranks.size):
         #     RANK_MAP[int(k%CUBE_Y), int(k / CUBE_Y)] = ranks[k]
-        plt.figure()
-        plt.subplot(121)
-        plt.imshow(RANK_MAP, cmap='gray', interpolation='nearest')
-        plt.subplot(122)
-        plt.imshow(PEAK_MAP, cmap='gray', interpolation='nearest')
+        # plt.figure()
+        # plt.subplot(121)
+        # plt.imshow(RANK_MAP, cmap='gray', interpolation='nearest')
+        # plt.subplot(122)
+        # plt.imshow(PEAK_MAP, cmap='gray', interpolation='nearest')
         
-        plt.figure()
-        plt.imshow(frame)
-        plt.show()
+        # plt.figure()
+        # plt.imshow(frame)
+        # plt.show()
 
         cv.rectangle(frame, v1, v2, 0)
         cv.imshow("f", frame)
-        cv.waitKey(0)
+        cv.waitKey(24)
 
 
 

@@ -27,7 +27,6 @@ locations, labels = annot_parser.parse("X:/UAV/annot/drones/", VID_NUM)
 data_num = VID_NUM
 
 cap = cv.VideoCapture(data_path + "Video_%s" % data_num + data_postfix)
-file_out = open("../features3d/feature3d_%d.txt" % VID_NUM, 'w')
 
 #------------------------------------------------------------------------
 # parse each video
@@ -51,12 +50,12 @@ while(True):
     if not x_0 == -1:
         patch = frame[x_0:x_1, y_0:y_1]
         # size of target area varies in time so we resize each patch to a certain size, fitting HoG Descriptor.
-        patch = cv.resize(patch, (CUBE_X, CUBE_Y))
+        # patch = cv.resize(patch, (CUBE_X, CUBE_Y))
     else:
         rand_nega_x = int(
-            np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
+            np.floor((frame.shape[0] - (x_1 - x_0)) * np.random.rand()))
         rand_nega_y = int(
-            np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
+            np.floor((frame.shape[1] - (y_1 - y_0)) * np.random.rand()))
         patch = frame[rand_nega_x: rand_nega_x +
                       CUBE_X, rand_nega_y: rand_nega_y + CUBE_Y]
 
