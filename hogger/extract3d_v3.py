@@ -58,11 +58,11 @@ IF_SHOW_PATCH = not SAVE_FEATURE
 IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
 
 CUBE_T, CUBE_Y, CUBE_X = (4, 64, 64)# define the size of each st-cube to be processed
-HOG_SIZE = (int(CUBE_X / 8), int(CUBE_T / 2))
-HOG_STEP = (int(CUBE_X / 8), int(CUBE_T / 2))
-BCDIV = 2
+HOG_SIZE = (int(CUBE_X / 4), int(CUBE_T / 2))
+HOG_STEP = (int(CUBE_X / 4), int(CUBE_T / 2))
+BCDIV = 3
 
-GAU_SIGMA = (1, 3, 3) #(t,y,x)
+GAU_SIGMA = (1, 1, 1) #(t,y,x)
 IF_LOG = False
 
 
