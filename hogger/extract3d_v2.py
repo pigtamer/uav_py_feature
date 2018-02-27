@@ -44,7 +44,7 @@ grp_2 = [37]
 grp_3 = [46, 47, 48, 49]
 grp_4 = [53, 55, 56]
 
-TRAIN_SET_RANGE = grp_2
+TRAIN_SET_RANGE = grp_0
 # TRAIN_SET_RANGE = [29]
 
 # ---------------------- PARAMS --------------------------------
@@ -58,7 +58,7 @@ IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
 
 CUBE_T, CUBE_Y, CUBE_X = (4, 40, 40)# define the size of each st-cube to be processed
 HOG_SIZE = (int(CUBE_X / 4), int(CUBE_T))
-HOG_STEP = (int(CUBE_X / 4), int(CUBE_T))
+HOG_STEP = (int(CUBE_X / 8), int(CUBE_T))
 BCDIV = 3
 GAU_SIGMA = (1, 2, 2) #(t,y,x)
 

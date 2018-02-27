@@ -45,7 +45,7 @@ grp_2 = [37]
 grp_3 = [46, 47, 48, 49]
 grp_4 = [53, 55, 56]
 
-TRAIN_SET_RANGE = grp_2
+TRAIN_SET_RANGE = grp_0
 # TRAIN_SET_RANGE = [29]
 
 # ---------------------- PARAMS --------------------------------
@@ -57,11 +57,13 @@ SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
 IF_SHOW_PATCH = not SAVE_FEATURE 
 IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
 
-CUBE_T, CUBE_Y, CUBE_X = (4, 40, 40)# define the size of each st-cube to be processed
-HOG_SIZE = (int(CUBE_X / 4), int(CUBE_T))
-HOG_STEP = (int(CUBE_X / 4), int(CUBE_T))
-BCDIV = 3
-GAU_SIGMA = (1, 2, 2) #(t,y,x)
+CUBE_T, CUBE_Y, CUBE_X = (4, 64, 64)# define the size of each st-cube to be processed
+HOG_SIZE = (int(CUBE_X / 8), int(CUBE_T / 2))
+HOG_STEP = (int(CUBE_X / 8), int(CUBE_T / 2))
+BCDIV = 2
+
+GAU_SIGMA = (1, 3, 3) #(t,y,x)
+IF_LOG = False
 
 
 NEGA_SPF = 10
@@ -117,22 +119,25 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
             stcube = []
             
 
-            xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
-            yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
+            xn_0 = int(np.floor((frame.shape[0] - (x_1 - x_0)) * np.random.rand()))
+            yn_0 = int(np.floor((frame.shape[1] - (y_1 - y_0)) * np.random.rand()))
             for frms in fbuffer:
                 rand_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+                rand_patch = cv.resize(rand_patch, (CUBE_X, CUBE_Y))
+                if IF_LOG: rand_patch = cv.Laplacian(rand_patch, cv.CV_64F)
+                
                 # n_stcube.append(n_patch)
                 if x_0 == -1:
                     stcube.append(rand_patch)
                 else:
                     patch = cv.resize(frms[x_0:x_1, y_0:y_1], (CUBE_X, CUBE_Y))
+                    if IF_LOG: patch = cv.Laplacian(patch, cv.CV_64F)
                     stcube.append(patch)
 
 # -----------------------------positive --------------------------------------
             stcube = np.array(stcube)
             stcube = gauss3d.smooth3d(stcube, GAU_SIGMA)    
             FHOG3D = myhog3d.compute(stcube, HOG_SIZE, HOG_STEP, BCDIV)
-
 
             label_cube = labels[time_stamp - CUBE_T + 1: time_stamp + 1]
             if TRAIN_MODE == "strict":
@@ -184,10 +189,12 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
             for idx in range(NEGA_SPF):
                 n_stcube = []
 
-                xn_0 = int(np.floor((frame.shape[0] - CUBE_X) * np.random.rand()))
-                yn_0 = int(np.floor((frame.shape[1] - CUBE_Y) * np.random.rand()))
+                xn_0 = int(np.floor((frame.shape[0] - (x_1 - x_0)) * np.random.rand()))
+                yn_0 = int(np.floor((frame.shape[1] - (y_1 - y_0)) * np.random.rand()))
                 for frms in fbuffer:
                     n_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
+                    n_patch = cv.resize(n_patch, (CUBE_X, CUBE_Y))
+                    if IF_LOG: n_patch = cv.Laplacian(n_patch, cv.CV_64F)
                     n_stcube.append(n_patch)
                 n_stcube = np.array(n_stcube)
                 n_stcube = gauss3d.smooth3d(n_stcube, GAU_SIGMA)

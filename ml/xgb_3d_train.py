@@ -21,8 +21,8 @@ def evalerror(preds, dtrain):
     return 'error', float(sum(labels != (preds > 0.0))) / len(labels)
 
 t = time.time()
-TRAIN_NUM = "ALL"
-TEST_NUM = "ALL"
+TRAIN_NUM = "1"
+TEST_NUM = "12"
 dtrain = xgb.DMatrix("../features3d/feature3d_%s.txt"%TRAIN_NUM)
 dtest = xgb.DMatrix("../features3d/feature3d_%s.txt"%TEST_NUM)
 
@@ -32,7 +32,7 @@ print(labels)
 # dtest = xgb.DMatrix("./features3d/flatten_%s.txt"%TEST_NUM)
 
 # param is a dictionary. you can refer to xgboost python intro for further info on its keys and available values. Its obj-func and eval can be defined by users
-param = {'max_depth': 5, 'eta': 1, 'silent': 1}
+param = {'max_depth': 3, 'eta': 1, 'silent': 1}
 
 watchlist = [(dtest, 'eval'), (dtrain, 'train')]
 num_round = 10
