@@ -45,11 +45,11 @@ grp_2 = [37]
 grp_3 = [46, 47, 48, 49]
 grp_4 = [53, 55, 56]
 
-TRAIN_SET_RANGE = grp_0
+TRAIN_SET_RANGE = [1]
 # TRAIN_SET_RANGE = [29]
 
 # ---------------------- PARAMS --------------------------------
-TRAIN_MODE = "strict"
+TRAIN_MODE = "loose"
 
 SAVE_FEATURE = True
 SAVE_EXTRA_NEGATIVE = True and SAVE_FEATURE
@@ -58,15 +58,15 @@ IF_SHOW_PATCH = not SAVE_FEATURE
 IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
 
 CUBE_T, CUBE_Y, CUBE_X = (4, 40, 40)# define the size of each st-cube to be processed
-HOG_SIZE = (int(CUBE_X / 2), int(CUBE_T))
-HOG_STEP = (int(CUBE_X / 2), int(CUBE_T))
+HOG_SIZE = (int(np.ceil(CUBE_X / 3)), int(np.ceil(CUBE_T / 2)))
+HOG_STEP = (int(np.ceil(CUBE_X / 3)), int(np.ceil(CUBE_T / 2)))
 BCDIV = 3
 
 GAU_SIGMA = (1, 3, 3) #(t,y,x)
 IF_LOG = True
 
 
-NEGA_SPF = 10
+NEGA_SPF = 1
 group_file_out = open("../features3d/feature3d_ALL.txt", 'w')
 # NEGATIVE_SAMPLES_PER_FRAME = 1
 # parse videos in training set
@@ -172,7 +172,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                 for k in range(CUBE_T):
                     plt.subplot(1, CUBE_T, k + 1)
                     plt.title(label_cube[k])
-                    plt.imshow(stcube[k, :, :])
+                    plt.imshow(stcube[k, :, :], cmap='gray')
                 plt.show()
 
 
@@ -185,6 +185,10 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
                 xn_0 = int(np.floor((frame.shape[0] - (x_1 - x_0)) * np.random.rand()))
                 yn_0 = int(np.floor((frame.shape[1] - (y_1 - y_0)) * np.random.rand()))
+
+                # avoid overlapping of (+)(-) samples
+                if ((xn_0 > x_0 - CUBE_X and xn_0 < x_0 + CUBE_X) and (yn_0 > y_0 - CUBE_Y and yn_0 < y_0 + CUBE_Y)):
+                    continue
                 for frms in fbuffer:
                     n_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]
                     n_patch = cv.resize(n_patch, (CUBE_X, CUBE_Y))
@@ -222,11 +226,9 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                 plt.figure(figsize = (4* CUBE_T, 6))                
                 for k in range(CUBE_T):
                     plt.subplot(1, CUBE_T, k + 1)
-                    plt.imshow(n_stcube[k, :, :])
+                    plt.imshow(n_stcube[k, :, :], cmap='gray')
                 plt.show()
-
-
-                
+          
 
         time_stamp = time_stamp + 1
         if time_stamp == locations.shape[0] : break

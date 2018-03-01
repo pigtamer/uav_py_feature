@@ -28,8 +28,7 @@ cap = cv.VideoCapture(data_path + "Video_%s"%data_num + data_postfix)
 # ---------------------- PARAMS --------------------------------
 TRAIN_MODE = "strict"
 
-CUBE_T, CUBE_Y, CUBE_X = (4, 100, 100)# define the size of each st-cube to be processed
-CSTEP, TSTEP = (CUBE_X, CUBE_T)
+CUBE_T, CUBE_Y, CUBE_X = (4, 80, 80)# define the size of each st-cube to be processed
 HOG_SIZE = (int(CUBE_X / 3), int(CUBE_T))
 HOG_STEP = (int(CUBE_X / 3), int(CUBE_T))
 BCDIV = 3
@@ -37,17 +36,20 @@ BCDIV = 3
 GAU_SIGMA = (1, 3, 3) #(t,y,x)
 IF_LOG = True
 
-STEP = CSTEP
+STEP = int(16)
 # ---------------------------------------------------------------
-
+Vex = []
 fbuffer = deque()    # buffer for st-cube
-time_stamp = 0    
+time_stamp = 0 
 tic = time.time()
 while(True):
     ret, frame = cap.read()
     if not ret: break
 
-    # frame = frame[100: 480, 280:640]
+    # frame = frame[180: 360, 340: 540]
+
+    frame = frame[180: 480, 240: 540]
+    
     
     frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # now is uint
 
@@ -57,8 +59,8 @@ while(True):
 
     # print(frame.shape)
     # T_GRID = np.arange(0, frame.shape[0], CUBE_T)   
-    Y_GRID = np.arange(0, frame.shape[1] - CUBE_X, STEP)
-    X_GRID = np.arange(0, frame.shape[0] - CUBE_Y, STEP)
+    Y_GRID = np.arange(0, frame.shape[1] - (CUBE_X + STEP), STEP)
+    X_GRID = np.arange(0, frame.shape[0] - (CUBE_Y + STEP), STEP)
 
     if len(fbuffer) == CUBE_T + 1 :
         fbuffer.popleft() # pop a frame from head when buffer is filled
@@ -87,17 +89,17 @@ while(True):
         ranks = dst.predict(DM_GRID)
         # ranks[ranks > 0.5 * np.max(ranks)] = 0
          
-        idx = np.argmax(ranks)
-        # RANK_MAP = ranks.reshape((int(int(frame.shape[0] - CUBE_X)/CUBE_X), int(int(frame.shape[1] - CUBE_Y)/CUBE_Y)))
-        RANK_MAP = ranks.reshape(len(X_GRID), len(Y_GRID))
-
-        PEAK_MAP = RANK_MAP.copy()
-        PEAK_MAP[PEAK_MAP < np.max(PEAK_MAP)] = 0
-        # RANK_MAP = np.zeros(((int(frame.shape[0]/CUBE_X), int(frame.shape[1]/CUBE_Y))))
-        v1 = (int(CUBE_X * (idx % int(frame.shape[1] / CUBE_Y))), int(CUBE_Y * (idx / int(frame.shape[1] / CUBE_Y))))
+        idx = int(np.argmax(ranks))
+        
+        v1 = ( int(STEP * (idx % int(len(X_GRID)))), int(STEP * int(int(idx) / int(len(X_GRID)))) )
+        
         v2 = (v1[0] + CUBE_X, v1[1] + CUBE_Y)
         
-        print(v1)
+
+        Vex.append([v1[1], v1[0]])
+
+
+        print(time_stamp, (v1[1], v1[0]))
         # for k in range(ranks.size):
         #     RANK_MAP[int(k%CUBE_Y), int(k / CUBE_Y)] = ranks[k]
         # plt.figure()
@@ -113,11 +115,12 @@ while(True):
         cv.rectangle(frame, v1, v2, 0)
         cv.imshow("f", frame)
         cv.waitKey(24)
-
-
-
-
-
     time_stamp = time_stamp + 1
+    if time_stamp > 100: break
 
+Vex = np.array(Vex)
+# print(Vex.shape)
+plt.figure()
+plt.scatter(Vex[:, 0], Vex[:, 1])
+plt.show()
 toc = time.time() - tic

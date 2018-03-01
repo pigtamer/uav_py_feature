@@ -30,7 +30,7 @@ labels = dtrain.get_label()
 print(labels)
 
 # param is a dictionary. you can refer to xgboost python intro for further info on its keys and available values. Its obj-func and eval can be defined by users
-param = {'max_depth': 5, 'eta': 1, 'silent': 1}
+param = {'max_depth': 3, 'eta': 1, 'silent': 1, 'subsample': 0.5}
 
 watchlist = [(dtest, 'eval'), (dtrain, 'train')]
 num_round = 10
