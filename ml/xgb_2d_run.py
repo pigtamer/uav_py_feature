@@ -1,6 +1,7 @@
 import time
 import cv2 as cv
 import numpy as np
+import matplotlib.pyplot as plt
 import xgboost as xgb
 
 # -----------------------------------------------------------------------------
@@ -52,6 +53,11 @@ while(True):
 
     ranks = dst.predict(evDM)
     idx = np.argmax(ranks)
+
+    plt.figure()
+    plt.plot(ranks)
+    plt.show()
+
 
     # print(idx)
     # print("(%d, %d)"%(idx / (X_PATCH_NUM_MAX + 1), idx % (X_PATCH_NUM_MAX + 1)))

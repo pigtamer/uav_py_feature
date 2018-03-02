@@ -18,7 +18,7 @@ def evalerror(preds, dtrain):
     labels = dtrain.get_label()
     # return a pair metric_name, result
     # since preds are margin(before logistic transformation, cutoff at 0)
-    return 'error', float(sum(labels != (preds > 0.0))) / len(labels)
+    return 'error', float(sum(labels != (preds >= 0.5))) / len(labels)
 
 t = time.time()
 TRAIN_NUM = "1"
@@ -30,10 +30,13 @@ labels = dtrain.get_label()
 print(labels)
 
 # param is a dictionary. you can refer to xgboost python intro for further info on its keys and available values. Its obj-func and eval can be defined by users
-param = {'max_depth': 10, 'eta': 1, 'silent': 0, 'subsample': 0.5, 'objective':'binary:logistic' }
+param = {'max_depth': 20, 'eta': 1, 'silent': 0, 'subsample': 0, 'objective':'binary:logistic' }
+
+
+# param = {'max_depth': 10, 'eta': 1, 'silent': 0, 'subsample': 0 }
 
 watchlist = [(dtest, 'eval'), (dtrain, 'train')]
-num_round = 30
+num_round = 20
 
 # dst = xgb.train(param, dtrain, num_round, watchlist, logregobj, evalerror) # dst is xgb.Booster. 
 dst = xgb.train(param, dtrain, num_round, watchlist)
