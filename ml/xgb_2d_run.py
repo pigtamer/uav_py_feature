@@ -26,19 +26,21 @@ data_postfix = ".avi"
 data_num = 12
 cap = cv.VideoCapture(data_path + "Video_%s"%data_num + data_postfix)
 
+STEP = 10
+CSIZE = 64
 time_stamp = 0
 while(True):
     ret, frame = cap.read()
     frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    X_PATCH_NUM_MAX = int(frame.shape[0] / 80)
-    Y_PATCH_NUM_MAX = int(frame.shape[1] / 80)
+    Y_GRID = np.arange(0, frame.shape[1] - (40 + STEP), STEP)
+    X_GRID = np.arange(0, frame.shape[0] - (40 + STEP), STEP)
 
     ech_frame = [] # container for pathces on each frame
-    for x_0 in range(int(frame.shape[0] / 80)):
-        x_1 = x_0 + 80
-        for y_0 in range(int(frame.shape[1] / 80)):
-            y_1 = y_0 + 80
+    for x_0 in X_GRID:
+        x_1 = x_0 + CSIZE
+        for y_0 in Y_GRID:
+            y_1 = y_0 + CSIZE
             patch = frame[x_0:x_1, y_0:y_1]   
             patch = cv.resize(patch, (40, 40))     
             patchhog = hogger2d.compute(patch)
@@ -53,8 +55,8 @@ while(True):
 
     # print(idx)
     # print("(%d, %d)"%(idx / (X_PATCH_NUM_MAX + 1), idx % (X_PATCH_NUM_MAX + 1)))
-    v1 = (80*int(idx % (X_PATCH_NUM_MAX + 1)), 80*int(idx / (X_PATCH_NUM_MAX + 1)))
-    v2 = ( 80*int(idx % (X_PATCH_NUM_MAX + 1)) + 80, 80*int(idx / (X_PATCH_NUM_MAX + 1)) + 80)
+    v1 = ( int(STEP * (idx % int(len(X_GRID)))), int(STEP * int(int(idx) / int(len(X_GRID)))) )
+    v2 = (v1[0] + CSIZE, v1[1] + CSIZE)
     
     cv.rectangle(frame, v1, v2, 0)
     cv.imshow("f", frame)

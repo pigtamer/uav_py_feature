@@ -49,7 +49,7 @@ TRAIN_SET_RANGE = [1] # select some videos by slicing
 IF_SHOW_PATCH = False # warning: it can critically slow down extraction process
 IF_PLOT_HOG_FEATURE = False
 
-NEGA_SPF = 10
+NEGA_SPF = 100
 # parse videos in training set
 t = time.time()
 for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
@@ -107,7 +107,6 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                 # idx + 1 to fit libsvm format (xgb)
                 file_out.write("%d:%f " % (idx, n_patch_hog[idx]))
             file_out.write('\n')
-
 
             
         time_stamp = time_stamp + 1
