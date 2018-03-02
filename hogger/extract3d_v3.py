@@ -58,16 +58,16 @@ IF_SHOW_PATCH = not SAVE_FEATURE
 IF_PLOT_HOG_FEATURE = not SAVE_FEATURE
 
 CUBE_T, CUBE_Y, CUBE_X = (4, 40, 40)# define the size of each st-cube to be processed
-HOG_SIZE = (int(np.ceil(CUBE_X / 3)), int(np.ceil(CUBE_T / 2)))
-HOG_STEP = (int(np.ceil(CUBE_X / 3)), int(np.ceil(CUBE_T / 2)))
+HOG_SIZE = (int(np.ceil(CUBE_X / 4)), int(np.ceil(CUBE_T / 2)))
+HOG_STEP = (int(np.ceil(CUBE_X / 4)), int(np.ceil(CUBE_T / 2)))
 BCDIV = 3
 
 GAU_SIGMA = (1, 3, 3) #(t,y,x)
-IF_LOG = True
+IF_LOG = False
 
 
-NEGA_SPF = 1
-group_file_out = open("../features3d/feature3d_ALL.txt", 'w')
+NEGA_SPF = 100
+if SAVE_FEATURE: group_file_out = open("../features3d/feature3d_ALL.txt", 'w')
 # NEGATIVE_SAMPLES_PER_FRAME = 1
 # parse videos in training set
 TIC = time.time()
@@ -78,7 +78,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
     data_num = VID_NUM
 
     cap = cv.VideoCapture(data_path + "Video_%s"%data_num + data_postfix)
-    file_out = open("../features3d/feature3d_%d.txt"%VID_NUM, 'w')
+    if SAVE_FEATURE: file_out = open("../features3d/feature3d_%d.txt"%VID_NUM, 'w')
 
     # parse each video    
 
@@ -121,7 +121,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
                 if IF_LOG: rand_patch = cv.Laplacian(rand_patch, cv.CV_64F)
                 
                 # n_stcube.append(n_patch)
-                if x_0 == -1:
+                if x_0 == -1: # label of current frame is 0
                     stcube.append(rand_patch)
                 else:
                     patch = cv.resize(frms[x_0:x_1, y_0:y_1], (CUBE_X, CUBE_Y))
@@ -188,6 +188,7 @@ for VID_NUM in TRAIN_SET_RANGE: #---- do all those shits down here
 
                 # avoid overlapping of (+)(-) samples
                 if ((xn_0 > x_0 - CUBE_X and xn_0 < x_0 + CUBE_X) and (yn_0 > y_0 - CUBE_Y and yn_0 < y_0 + CUBE_Y)):
+                    idx = idx - 1
                     continue
                 for frms in fbuffer:
                     n_patch = frms[xn_0 : xn_0 + CUBE_X, yn_0 : yn_0 + CUBE_Y]

@@ -25,12 +25,11 @@ data_path = "D:/Proj/UAV/dataset/drones/"
 data_postfix = ".avi"
 data_num = 1
 cap = cv.VideoCapture(data_path + "Video_%s"%data_num + data_postfix)
-# ---------------------- PARAMS --------------------------------
-TRAIN_MODE = "strict"
+# ---------------------- PARAMS -------------------------------
 
-CUBE_T, CUBE_Y, CUBE_X = (4, 80, 80)# define the size of each st-cube to be processed
-HOG_SIZE = (int(CUBE_X / 3), int(CUBE_T))
-HOG_STEP = (int(CUBE_X / 3), int(CUBE_T))
+CUBE_T, CUBE_Y, CUBE_X = (4, 64, 64)# define the size of each st-cube to be processed
+HOG_SIZE = (int(np.ceil(CUBE_X / 4)), int(np.ceil(CUBE_T / 2)))
+HOG_STEP = (int(np.ceil(CUBE_X / 4)), int(np.ceil(CUBE_T / 2)))
 BCDIV = 3
 
 GAU_SIGMA = (1, 3, 3) #(t,y,x)
@@ -46,9 +45,9 @@ while(True):
     ret, frame = cap.read()
     if not ret: break
 
-    # frame = frame[180: 360, 340: 540]
+    frame = frame[180: 360, 340: 540]
 
-    frame = frame[180: 480, 240: 540]
+    # frame = frame[180: 480, 240: 540]
     
     
     frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY) # now is uint
@@ -87,19 +86,14 @@ while(True):
         DM_GRID = xgb.DMatrix(HOG_GRID)
 
         ranks = dst.predict(DM_GRID)
+        print(np.max(ranks))
+        plt.figure()
+        plt.plot(ranks)
+        plt.show()
         # ranks[ranks > 0.5 * np.max(ranks)] = 0
          
         idx = int(np.argmax(ranks))
         
-        v1 = ( int(STEP * (idx % int(len(X_GRID)))), int(STEP * int(int(idx) / int(len(X_GRID)))) )
-        
-        v2 = (v1[0] + CUBE_X, v1[1] + CUBE_Y)
-        
-
-        Vex.append([v1[1], v1[0]])
-
-
-        print(time_stamp, (v1[1], v1[0]))
         # for k in range(ranks.size):
         #     RANK_MAP[int(k%CUBE_Y), int(k / CUBE_Y)] = ranks[k]
         # plt.figure()
@@ -112,9 +106,17 @@ while(True):
         # plt.imshow(frame)
         # plt.show()
 
-        cv.rectangle(frame, v1, v2, 0)
-        cv.imshow("f", frame)
-        cv.waitKey(24)
+        if np.max(ranks) > 0:
+            v1 = ( int(STEP * (idx % int(len(X_GRID)))), int(STEP * int(int(idx) / int(len(X_GRID)))) )
+            v2 = (v1[0] + CUBE_X, v1[1] + CUBE_Y)
+            Vex.append([v1[1], v1[0]])
+            print(time_stamp, (v1[1], v1[0]))
+
+            cv.rectangle(frame, v1, v2, 0)
+            cv.imshow("f", frame)
+            cv.waitKey(24)
+        else:
+            print("<!> TARGET NOT FOUND <!>")
     time_stamp = time_stamp + 1
     if time_stamp > 100: break
 
